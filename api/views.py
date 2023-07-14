@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
+from random import randint
 from .models import Users
 from . import helpers
 
@@ -33,6 +34,7 @@ def register_user(request):
                         'success': 1,
                         'message': 'Account Verified.',
                         'redirect': '/#tools',
+                        'api_token': cur_user.api_token,
                     })
                 else:
                     return JsonResponse({
@@ -53,7 +55,7 @@ def register_user(request):
                 'redirect': None,
             })
 
-    # Checking if both email & password are given
+    # Checking if both email & password not are given
     if email == None or email.strip() == "" or password == None or password.strip() == "":
         return JsonResponse({
             'success': 0,
@@ -61,8 +63,17 @@ def register_user(request):
             'redirect': None,
         })
 
+    # Checking if both email & password aren't very long in length
+    if len(email.strip()) > 100 or len(password.strip()) > 20:
+        return JsonResponse({
+            'success': 0,
+            'message': 'Too long email or password.',
+            'redirect': None,
+        })
+
     password = helpers.generate_hash(password)
-    api_token = helpers.generate_hash(str(email + password))
+    api_token = helpers.generate_hash(
+        str(email + password + str(randint(1, 20))))
 
     try:
         # Checking user status in existing database
@@ -116,14 +127,106 @@ def register_user(request):
 
 
 def login_user(request):
-    '''
-    TODO
-    '''
-    ...
+    email = request.GET.get('email')
+    password = request.GET.get('password')
+    otp = request.GET.get('otp')
 
+    # In case an OTP is provided
+    if otp != None:
+        try:
+            # Checking user status in existing database
+            cur_user = Users.objects.get(email)
+            cur_user_status = cur_user.user_status()
+            if cur_user_status == 0:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Sorry, the user has been blocked or deleted.',
+                    'redirect': None,
+                })
+            elif cur_user_status == 1:
+                if cur_user.match_otp(otp):
+                    return JsonResponse({
+                        'success': 1,
+                        'message': 'Account Verified.',
+                        'redirect': '/#tools',
+                        'api_token': cur_user.api_token,
+                    })
+                else:
+                    return JsonResponse({
+                        'success': 0,
+                        'message': 'Incorrect OTP entered!',
+                        'redirect': None,
+                    })
+            else:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Unknown Exception Occurred! Please contact Harsh Raj (harshraj2717@gmail.com).',
+                    'redirect': None,
+                })
+        except Users.DoesNotExist:
+            return JsonResponse({
+                'success': 0,
+                'message': 'Unknown Exception Occurred! Please contact Harsh Raj (harshraj2717@gmail.com).',
+                'redirect': None,
+            })
 
-def forgot_password(request):
-    '''
-    TODO
-    '''
-    ...
+    # Checking if both email & password are not given
+    if email == None or email.strip() == "" or password == None or password.strip() == "":
+        return JsonResponse({
+            'success': 0,
+            'message': 'Please provide both email & password.',
+            'redirect': None,
+        })
+
+    # Checking if both email & password aren't very long in length
+    if len(email.strip()) > 100 or len(password.strip()) > 20:
+        return JsonResponse({
+            'success': 0,
+            'message': 'Too long email or password.',
+            'redirect': None,
+        })
+
+    password = helpers.generate_hash(password)
+
+    try:
+        # Checking user status in existing database
+        cur_user = Users.objects.get(email=email)
+        cur_user_status = cur_user.user_status()
+        if cur_user_status == 0:
+            return JsonResponse({
+                'success': 0,
+                'message': 'Sorry, the user has been blocked or deleted.',
+                'redirect': None,
+            })
+        elif cur_user_status == 1:
+            if cur_user.verified == False:
+                return JsonResponse({
+                    'success': 1,
+                    'message': 'User not verified.',
+                    'redirect': '/verify',
+                })
+            if cur_user.password == password:
+                return JsonResponse({
+                    'success': 1,
+                    'message': 'Logged in.',
+                    'redirect': '/#tools',
+                    'api_token': cur_user.api_token,
+                })
+            else:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Incorrect password.',
+                    'redirect': None,
+                })
+        else:
+            return JsonResponse({
+                'success': 0,
+                'message': 'Unknown Exception Occurred! Please contact Harsh Raj (harshraj2717@gmail.com).',
+                'redirect': None,
+            })
+    except:
+        return JsonResponse({
+            'success': 0,
+            'message': 'User doesn\'t exists.',
+            'redirect': '/register',
+        })
