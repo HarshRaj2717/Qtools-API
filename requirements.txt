@@ -3,3 +3,4 @@ djangorestframework
 python-dotenv
 requests
 gunicorn
+whitenoise
