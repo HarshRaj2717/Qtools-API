@@ -14,13 +14,13 @@ def index(request):
 def register_user(request):
     email = request.GET.get('email')
     password = request.GET.get('password')
-    otp = request.GET.get('otp')
+    verification_code = request.GET.get('code')
 
-    # In case an OTP is provided
-    if otp != None:
+    # In case an verification_code is provided
+    if verification_code != None:
         try:
             # Checking user status in existing database
-            cur_user = Users.objects.get(email)
+            cur_user = Users.objects.get(email=email)
             cur_user_status = cur_user.user_status()
             if cur_user_status == 0:
                 return JsonResponse({
@@ -29,7 +29,7 @@ def register_user(request):
                     'redirect': None,
                 })
             elif cur_user_status == 1 or cur_user_status == 2:
-                if cur_user.match_otp(otp) or cur_user_status == 2:
+                if cur_user.match_verification_code(verification_code) or cur_user_status == 2:
                     return JsonResponse({
                         'success': 1,
                         'message': 'Account Verified.',
@@ -39,7 +39,7 @@ def register_user(request):
                 else:
                     return JsonResponse({
                         'success': 0,
-                        'message': 'Incorrect OTP entered!',
+                        'message': 'Incorrect verification code entered!',
                         'redirect': None,
                     })
             else:
@@ -88,7 +88,7 @@ def register_user(request):
         elif cur_user_status == 1:
             return JsonResponse({
                 'success': 1,
-                'message': 'OTP Sent for verification.',
+                'message': 'Verification Code Sent.',
                 'redirect': '/verify',
             })
         elif cur_user_status == 2:
@@ -117,11 +117,11 @@ def register_user(request):
             'redirect': None,
         })
 
-    if cur_user.send_otp():
+    if cur_user.send_verification_code():
         cur_user.save()
         return JsonResponse({
             'success': 1,
-            'message': 'OTP Sent for verification.',
+            'message': 'Verification Code Sent.',
             'redirect': '/verify',
         })
     else:
@@ -135,10 +135,10 @@ def register_user(request):
 def login_user(request):
     email = request.GET.get('email')
     password = request.GET.get('password')
-    otp = request.GET.get('otp')
+    verification_code = request.GET.get('code')
 
-    # In case an OTP is provided
-    if otp != None:
+    # In case an verification_code is provided
+    if verification_code != None:
         try:
             # Checking user status in existing database
             cur_user = Users.objects.get(email)
@@ -150,7 +150,7 @@ def login_user(request):
                     'redirect': None,
                 })
             elif cur_user_status == 1 or cur_user_status == 2:
-                if cur_user.match_otp(otp) or cur_user_status == 2:
+                if cur_user.match_verification_code(verification_code) or cur_user_status == 2:
                     return JsonResponse({
                         'success': 1,
                         'message': 'Account Verified.',
@@ -160,7 +160,7 @@ def login_user(request):
                 else:
                     return JsonResponse({
                         'success': 0,
-                        'message': 'Incorrect OTP entered!',
+                        'message': 'Incorrect verification code entered!',
                         'redirect': None,
                     })
             else:
