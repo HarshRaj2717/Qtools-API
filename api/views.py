@@ -28,8 +28,8 @@ def register_user(request):
                     'message': 'Sorry, the user has been blocked or deleted.',
                     'redirect': None,
                 })
-            elif cur_user_status == 1:
-                if cur_user.match_otp(otp):
+            elif cur_user_status == 1 or cur_user_status == 2:
+                if cur_user.match_otp(otp) or cur_user_status == 2:
                     return JsonResponse({
                         'success': 1,
                         'message': 'Account Verified.',
@@ -87,6 +87,12 @@ def register_user(request):
             })
         elif cur_user_status == 1:
             return JsonResponse({
+                'success': 1,
+                'message': 'OTP Sent for verification.',
+                'redirect': '/verify',
+            })
+        elif cur_user_status == 2:
+            return JsonResponse({
                 'success': 0,
                 'message': 'User already exists! Please Login.',
                 'redirect': '/login',
@@ -143,8 +149,8 @@ def login_user(request):
                     'message': 'Sorry, the user has been blocked or deleted.',
                     'redirect': None,
                 })
-            elif cur_user_status == 1:
-                if cur_user.match_otp(otp):
+            elif cur_user_status == 1 or cur_user_status == 2:
+                if cur_user.match_otp(otp) or cur_user_status == 2:
                     return JsonResponse({
                         'success': 1,
                         'message': 'Account Verified.',
@@ -199,12 +205,12 @@ def login_user(request):
                 'redirect': None,
             })
         elif cur_user_status == 1:
-            if cur_user.verified == False:
-                return JsonResponse({
-                    'success': 1,
-                    'message': 'User not verified.',
-                    'redirect': '/verify',
-                })
+            return JsonResponse({
+                'success': 0,
+                'message': 'User not verified.',
+                'redirect': '/verify',
+            })
+        elif cur_user_status == 2:
             if cur_user.password == password:
                 return JsonResponse({
                     'success': 1,
