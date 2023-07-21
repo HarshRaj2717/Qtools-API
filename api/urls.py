@@ -5,6 +5,7 @@ from . import views
 # URL conf
 urlpatterns = [
     path('', views.index),
-    path('settings.FRONTEND_SECRET_KEY/register/', views.register_user),
-    path('settings.FRONTEND_SECRET_KEY/login/', views.login_user),
+    path(f'{settings.FRONTEND_SECRET_KEY}/', views.index),
+    path(f'{settings.FRONTEND_SECRET_KEY}/register/', views.register_user),
+    path(f'{settings.FRONTEND_SECRET_KEY}/login/', views.login_user),
 ]
