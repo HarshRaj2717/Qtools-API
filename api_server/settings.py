@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
-import dj_database_url
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -20,7 +19,10 @@ load_dotenv()
 EMAIL_ADDRESS = os.getenv('qtools_sender_email')
 EMAIL_PASSWORD = os.getenv('qtools_sender_email_password')
 FRONTEND_SECRET_KEY = os.getenv('frontend_secret_key')
-DATABASE_URL = os.getenv('database_url')
+NEON_DB_USERNAME = os.getenv('neon_db_username')
+NEON_DB_PASSWORD = os.getenv('neon_db_password')
+NEON_DB_HOST = os.getenv('neon_db_host')
+NEON_DB_PORT = os.getenv('neon_db_port')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -102,12 +104,15 @@ WSGI_APPLICATION = 'api_server.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=DATABASE_URL,
-        conn_max_age=600,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'neondb',
+        'USER': NEON_DB_USERNAME,
+        'PASSWORD': NEON_DB_PASSWORD,
+        'HOST': NEON_DB_HOST,
+        'PORT': NEON_DB_PORT,
+    }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
