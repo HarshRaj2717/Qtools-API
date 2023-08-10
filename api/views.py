@@ -63,14 +63,6 @@ def register_user(request):
             'redirect': None,
         })
 
-    # Checking if both email & password aren't very long in length
-    if len(email.strip()) > 100 or len(password.strip()) > 20:
-        return JsonResponse({
-            'success': 0,
-            'message': 'Too long email or password.',
-            'redirect': None,
-        })
-
     password = helpers.generate_hash(password)
     api_token = helpers.generate_hash(
         str(email + password + str(randint(1, 20))))
