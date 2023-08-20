@@ -12,15 +12,15 @@ def index(request):
 
 
 def register_user(request):
-    email = request.GET.get('email')
-    password = request.GET.get('password')
-    verification_code = request.GET.get('code')
+    EMAIL = request.GET.get('email')
+    PASSWORD = request.GET.get('password')
+    VERIFICATION_CODE = request.GET.get('code')
 
     # In case an verification_code is provided
-    if verification_code != None:
+    if VERIFICATION_CODE != None:
         try:
             # Checking user status in existing database
-            cur_user = Users.objects.get(email=email)
+            cur_user = Users.objects.get(email=EMAIL)
             cur_user_status = cur_user.user_status()
             if cur_user_status == 0:
                 return JsonResponse({
@@ -29,7 +29,7 @@ def register_user(request):
                     'redirect': None,
                 })
             elif cur_user_status == 1 or cur_user_status == 2:
-                if cur_user.match_verification_code(verification_code) or cur_user_status == 2:
+                if cur_user.match_verification_code(VERIFICATION_CODE) or cur_user_status == 2:
                     return JsonResponse({
                         'success': 1,
                         'message': 'Account Verified.',
@@ -56,20 +56,20 @@ def register_user(request):
             })
 
     # Checking if both email & password not are given
-    if email == None or email.strip() == "" or password == None or password.strip() == "":
+    if EMAIL == None or EMAIL.strip() == "" or PASSWORD == None or PASSWORD.strip() == "":
         return JsonResponse({
             'success': 0,
             'message': 'Please provide both email & password.',
             'redirect': None,
         })
 
-    password = helpers.generate_hash(password)
+    PASSWORD = helpers.generate_hash(PASSWORD)
     api_token = helpers.generate_hash(
-        str(email + password + str(randint(1, 20))))
+        str(EMAIL + PASSWORD + str(randint(1, 20))))
 
     try:
         # Checking user status in existing database
-        cur_user = Users.objects.get(email=email)
+        cur_user = Users.objects.get(email=EMAIL)
         cur_user_status = cur_user.user_status()
         if cur_user_status == 0:
             return JsonResponse({
@@ -97,8 +97,8 @@ def register_user(request):
             })
     except Users.DoesNotExist:
         cur_user = Users(
-            email=email,
-            password=password,
+            email=EMAIL,
+            password=PASSWORD,
             api_token=api_token
         )
 
@@ -110,7 +110,6 @@ def register_user(request):
         })
 
     if cur_user.send_verification_code():
-        cur_user.save()
         return JsonResponse({
             'success': 1,
             'message': 'Verification Code Sent.',
@@ -125,15 +124,15 @@ def register_user(request):
 
 
 def login_user(request):
-    email = request.GET.get('email')
-    password = request.GET.get('password')
-    verification_code = request.GET.get('code')
+    EMAIL = request.GET.get('email')
+    PASSWORD = request.GET.get('password')
+    VERIFICATION_CODE = request.GET.get('code')
 
     # In case an verification_code is provided
-    if verification_code != None:
+    if VERIFICATION_CODE != None:
         try:
             # Checking user status in existing database
-            cur_user = Users.objects.get(email)
+            cur_user = Users.objects.get(EMAIL)
             cur_user_status = cur_user.user_status()
             if cur_user_status == 0:
                 return JsonResponse({
@@ -142,7 +141,7 @@ def login_user(request):
                     'redirect': None,
                 })
             elif cur_user_status == 1 or cur_user_status == 2:
-                if cur_user.match_verification_code(verification_code) or cur_user_status == 2:
+                if cur_user.match_verification_code(VERIFICATION_CODE) or cur_user_status == 2:
                     return JsonResponse({
                         'success': 1,
                         'message': 'Account Verified.',
@@ -169,7 +168,7 @@ def login_user(request):
             })
 
     # Checking if both email & password are not given
-    if email == None or email.strip() == "" or password == None or password.strip() == "":
+    if EMAIL == None or EMAIL.strip() == "" or PASSWORD == None or PASSWORD.strip() == "":
         return JsonResponse({
             'success': 0,
             'message': 'Please provide both email & password.',
@@ -177,18 +176,18 @@ def login_user(request):
         })
 
     # Checking if both email & password aren't very long in length
-    if len(email.strip()) > 100 or len(password.strip()) > 20:
+    if len(EMAIL.strip()) > 100 or len(PASSWORD.strip()) > 20:
         return JsonResponse({
             'success': 0,
             'message': 'Too long email or password.',
             'redirect': None,
         })
 
-    password = helpers.generate_hash(password)
+    PASSWORD = helpers.generate_hash(PASSWORD)
 
     try:
         # Checking user status in existing database
-        cur_user = Users.objects.get(email=email)
+        cur_user = Users.objects.get(email=EMAIL)
         cur_user_status = cur_user.user_status()
         if cur_user_status == 0:
             return JsonResponse({
@@ -203,7 +202,7 @@ def login_user(request):
                 'redirect': '/verify',
             })
         elif cur_user_status == 2:
-            if cur_user.password == password:
+            if cur_user.password == PASSWORD:
                 return JsonResponse({
                     'success': 1,
                     'message': 'Logged in.',
@@ -227,4 +226,70 @@ def login_user(request):
             'success': 0,
             'message': 'User doesn\'t exists.',
             'redirect': '/register',
+        })
+
+
+def image_resizer(request, user_token):
+    FILE_URL = request.GET.get('file')
+    WIDTH = request.GET.get('width')
+    HEIGHT = request.GET.get('height')
+
+    try:
+        WIDTH = int(WIDTH)
+        HEIGHT = int(HEIGHT)
+    except:
+        return JsonResponse({
+            'success': 0,
+            'message': 'Invalid inputs.',
+            'redirect': None,
+        })
+
+    try:
+        cur_user = Users.objects.get(api_token=user_token)
+        if (cur_user_status := cur_user.user_status()) != 2:
+            if cur_user_status == 0:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Sorry, the user has been blocked or deleted.',
+                    'redirect': None,
+                })
+            elif cur_user_status == 1:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'User hasn\'t been verified.',
+                    'redirect': '\verify',
+                })
+        if (usage_permission := cur_user.is_api_usage_allowed()) != 1:
+            if usage_permission == 0:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Sorry, usage limit already reached on current plan.',
+                    'redirect': None,
+                })
+            elif usage_permission == 2:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Unknown Exception Occurred! Please contact Harsh Raj (harshraj2717@gmail.com).',
+                    'redirect': None,
+                })
+        try:
+            output_url, file_transfer_size = helpers.resize_image(
+                FILE_URL, WIDTH, HEIGHT)
+            cur_user.use_resources(file_transfer_size)
+            return JsonResponse({
+                'success': 1,
+                'message': output_url,
+                'redirect': None,
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': 0,
+                'message': e,
+                'redirect': None,
+            })
+    except Users.DoesNotExist:
+        return JsonResponse({
+            'success': 0,
+            'message': 'Invalid Token.',
+            'redirect': '/login',
         })

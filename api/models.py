@@ -101,6 +101,7 @@ class Users(models.Model):
             smtp.login(settings.EMAIL_ADDRESS, settings.EMAIL_PASSWORD)
             smtp.send_message(msg)
 
+        self.save()
         return True
 
     def match_verification_code(self, verification_code: str) -> bool:
@@ -208,3 +209,9 @@ class Users(models.Model):
         if self.verified == False:
             return 1
         return 2
+
+    def use_resources(self, file_transfer_size: int) -> None:
+        self.api_calls_count += 1
+        self.files_transferred_mb += file_transfer_size
+        self.last_api_call_month = date.today()
+        self.save()
