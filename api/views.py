@@ -235,6 +235,7 @@ def image_resizer(request, user_token):
     HEIGHT = request.GET.get('height')
 
     try:
+        assert FILE_URL
         WIDTH = int(WIDTH)
         HEIGHT = int(HEIGHT)
     except:
@@ -275,6 +276,66 @@ def image_resizer(request, user_token):
         try:
             output_url, file_transfer_size = helpers.resize_image(
                 FILE_URL, WIDTH, HEIGHT)
+            cur_user.use_resources(file_transfer_size)
+            return JsonResponse({
+                'success': 1,
+                'message': output_url,
+                'redirect': None,
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': 0,
+                'message': e,
+                'redirect': None,
+            })
+    except Users.DoesNotExist:
+        return JsonResponse({
+            'success': 0,
+            'message': 'Invalid Token.',
+            'redirect': '/login',
+        })
+
+
+def video_to_mp3(request, user_token):
+    FILE_URL = request.GET.get('file')
+
+    if not FILE_URL:
+        return JsonResponse({
+            'success': 0,
+            'message': 'Invalid inputs.',
+            'redirect': None,
+        })
+
+    try:
+        cur_user = Users.objects.get(api_token=user_token)
+        if (cur_user_status := cur_user.user_status()) != 2:
+            if cur_user_status == 0:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Sorry, the user has been blocked or deleted.',
+                    'redirect': None,
+                })
+            elif cur_user_status == 1:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'User hasn\'t been verified.',
+                    'redirect': '\verify',
+                })
+        if (usage_permission := cur_user.is_api_usage_allowed()) != 1:
+            if usage_permission == 0:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Sorry, usage limit already reached on current plan.',
+                    'redirect': None,
+                })
+            elif usage_permission == 2:
+                return JsonResponse({
+                    'success': 0,
+                    'message': 'Unknown Exception Occurred! Please contact Harsh Raj (harshraj2717@gmail.com).',
+                    'redirect': None,
+                })
+        try:
+            output_url, file_transfer_size = helpers.video_to_mp3(FILE_URL)
             cur_user.use_resources(file_transfer_size)
             return JsonResponse({
                 'success': 1,
